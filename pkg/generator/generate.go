@@ -25,7 +25,6 @@ var (
 	errEnumNonPrimitiveVal            = errors.New("enum has non-primitive value")
 	errMapURIToPackageName            = errors.New("unable to map schema URI to Go package name")
 	errExpectedNamedType              = errors.New("expected named type")
-	errUnsupportedRefFormat           = errors.New("unsupported $ref format")
 	errConflictSameFile               = errors.New("conflict: same file")
 	errDefinitionDoesNotExistInSchema = errors.New("definition does not exist in schema")
 	errCannotGenerateReferencedType   = errors.New("cannot generate referenced type")
@@ -65,8 +64,13 @@ func New(config Config) (*Generator, error) {
 		formatters:            formatters,
 	}
 
+	httpLoader := schemas.NewHTTPLoader(config.YAMLExtensions)
 	generator.fileLoader = schemas.NewCachedLoader(
-		schemas.NewFileLoader(config.ResolveExtensions, config.YAMLExtensions),
+		schemas.MultiLoader{
+			schemas.RefTypeFile:  schemas.NewFileLoader(config.ResolveExtensions, config.YAMLExtensions),
+			schemas.RefTypeHTTP:  httpLoader,
+			schemas.RefTypeHTTPS: httpLoader,
+		},
 		generator.schemaCacheByFileName,
 	)
 
